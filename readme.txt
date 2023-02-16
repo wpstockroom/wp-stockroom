@@ -1,4 +1,4 @@
-=== Janw Base Plugin ===
+=== WP Stockroom ===
 Contributors: janw.oostendorp
 Requires at least: 6.0
 Tested up to: 6.1

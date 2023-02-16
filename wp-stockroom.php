@@ -16,7 +16,7 @@
 
 namespace WP_Stockroom;
 
-use WP_Stockroom\App\Rest\Meta;
+use WP_Stockroom\App\Package_Post_Type;
 use WP_Stockroom\App\Shortcode;
 
 define( 'WP_STOCKROOM_VERSION', '0.9.0' );
@@ -61,8 +61,16 @@ register_uninstall_hook( __FILE__, array( '\WP_Stockroom\App\Plugin', 'uninstall
 
 // Add translation.
 add_action( 'init', array( '\WP_Stockroom\App\Plugin', 'load_textdomain' ), 9 );
-add_action( 'rest_api_init', array( '\WP_Stockroom\App\Rest\Controller', 'rest_api_init' ) );
-add_action( 'rest_api_init', array( Meta::instance(), 'rest_fields' ) );
 
-// Add the rest of the hooks & filters.
+// Rest API.
+add_action( 'rest_api_init', array( '\WP_Stockroom\App\Rest\Controller', 'rest_api_init' ) );
+
+// Shortcode.
 add_shortcode( Shortcode::TAG, array( Shortcode::instance(), 'render' ) );
+
+// Post type.
+add_action( 'init', array( Package_Post_Type::instance(), 'register' ) );
+add_filter( 'manage_package_posts_columns', array( Package_Post_Type::instance(), 'admin_list_columns' ) );
+add_action( 'manage_package_posts_custom_column', array( Package_Post_Type::instance(), 'admin_list_columns_content' ), 10, 2 );
+
+
