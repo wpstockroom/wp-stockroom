@@ -111,6 +111,28 @@ class Post_Type {
 	}
 
 	/**
+	 * Remove the api routes we don't want.
+	 *
+	 * @param array $endpoints Currently registerd route.
+	 *
+	 * @return array
+	 */
+	public function remove_routes( array $endpoints ): array {
+		// Unset auto saves.
+		unset( $endpoints['/wp-stockroom/v1/package/(?P<id>[\d]+)/autosaves'] );
+		unset( $endpoints['/wp-stockroom/v1/package/(?P<parent>[\d]+)/autosaves/(?P<id>[\d]+)'] );
+
+		// Unset delete and update.
+		foreach ( $endpoints['/wp-stockroom/v1/package/(?P<id>[\d]+)'] as $key => $route ) {
+			if ( ! empty( $route['methods'] ) && in_array( $route['methods'], array( \WP_REST_Server::DELETABLE, \WP_REST_Server::EDITABLE ), true ) ) {
+				unset( $endpoints['/wp-stockroom/v1/package/(?P<id>[\d]+)'][ $key ] );
+			}
+		}
+
+		return $endpoints;
+	}
+
+	/**
 	 * Add custom columns to the admin so the most important data is visible.
 	 *
 	 * @param array $columns The current list of columns.

@@ -13,69 +13,65 @@ use WP_Stockroom\App\Uploader;
 class Rest_Controller extends \WP_REST_Posts_Controller {
 
 	/**
-	 * Registers the REST API routes.
-	 *
-	 * @return void
-	 * @see register_rest_route()
-	 */
-	public function register_routes() {
-		register_rest_route(
-			$this->namespace,
-			'/' . $this->rest_base,
-			array(
-				array(
-					'methods'             => \WP_REST_Server::READABLE,
-					'callback'            => array( $this, 'get_items' ), // TODO filter items?
-					'permission_callback' => array( $this, 'get_items_permissions_check' ),
-					'args'                => $this->get_collection_params(), // TODO add `package_type` as a filter.
-				),
-				array(
-					'methods'             => \WP_REST_Server::CREATABLE,
-					'callback'            => array( $this, 'create_item' ),
-					'permission_callback' => array( $this, 'create_item_permissions_check' ),
-					'args'                => $this->get_endpoint_args_for_item_schema( \WP_REST_Server::CREATABLE ),
-				),
-				'schema' => array( $this, 'get_public_item_schema' ),
-			)
-		);
-	}
-
-	/**
-	 * Create a new package.
+	 * Both CREATES and UPDATES packages.
+	 * But the default method name is "create_item" and this was the easierst.
 	 *
 	 * @param \WP_REST_Request $request The current request.
 	 *
 	 * @return \WP_Error|\WP_REST_Response
 	 */
 	public function create_item( $request ) {
+		// update & insert.
+		return $this->save_package( $request );
+	}
+
+	/**
+	 * Update and create pacakges.
+	 *
+	 * @param \WP_REST_Request $request The current request.
+	 *
+	 * @return \WP_Error|\WP_REST_Response
+	 */
+	protected function save_package( $request ) {
 		if ( ! empty( $request['id'] ) ) {
 			return new \WP_Error(
-				'rest_package_exists',
-				__( 'Cannot create existing package.', 'wp-stockroom' ),
+				'rest_package_invalid_id',
+				__( 'Packages cannot be updated by ID, only slug..', 'wp-stockroom' ),
 				array( 'status' => 400 )
 			);
 		}
 		$existing_post = Post_Type::instance()->get_package_by_slug( $request['slug'] );
-		if ( ! empty( $existing_post ) ) {
-			return new \WP_Error(
-				'rest_package_exists',
-				__( 'Cannot create existing package.', 'wp-stockroom' ),
-				array( 'status' => 400 )
+
+		if ( ! $existing_post ) {
+			/**
+			 * Create new Package
+			 */
+			$package_post    = array(
+				'post_title'  => $request['title'] ? $request['title'] : $request['slug'],
+				'post_name'   => $request['slug'], // This can't be empty.
+				'post_status' => $request['status'] ? $request['status'] : 'draft', // default as draft.
+				'post_type'   => 'package',
+				'meta_input'  => array(
+					'_version'      => $request['version'],
+					'_package_type' => $request['package_type'],
+				),
 			);
+			$package_post_id = wp_insert_post( $package_post, true );
+		} else {
+			/**
+			 * Update existing packages.
+			 */
+			$package_post    = array(
+				'ID'          => $existing_post->ID,
+				'post_title'  => $request['title'] ? $request['title'] : $existing_post->post_title,
+				'post_status' => $request['status'] ? $request['status'] : $existing_post->post_status,
+				'meta_input'  => array(
+					'_version' => $request['version'],
+				),
+			);
+			$package_post_id = wp_update_post( $package_post, true );
 		}
 
-		$package_post = array(
-			'post_title'  => $request['title'] ? $request['title'] : null,
-			'post_name'   => $request['slug'], // This can't be empty.
-			'post_status' => $request['status'] ? $request['status'] : 'draft', // default as draft.
-			'post_type'   => 'package',
-			'meta_input'  => array(
-				'_version'      => $request['version'],
-				'_package_type' => $request['package_type'],
-			),
-
-		);
-		$package_post_id = wp_insert_post( $package_post, true );
 		if ( is_wp_error( $package_post_id ) ) {
 			$package_post_id->add_data( array( 'status' => 500 ) );
 
@@ -159,10 +155,16 @@ class Rest_Controller extends \WP_REST_Posts_Controller {
 			'title'      => 'package',
 			'type'       => 'object',
 			'properties' => array(
+				'id'               => array(
+					'description' => __( 'Unique identifier for the package.', 'wp-stockroom' ),
+					'type'        => 'integer',
+					'context'     => array( 'view', 'edit' ),
+					'readonly'    => true,
+				),
 				'slug'             => array(
 					'description' => __( 'An alphanumeric identifier for the Package unique to its type.', 'wp-stockroom' ),
 					'type'        => 'string',
-					'context'     => array( 'view', 'edit', 'embed' ),
+					'context'     => array( 'view', 'edit' ),
 					'required'    => true,
 					'arg_options' => array(
 						'sanitize_callback' => array( $this, 'sanitize_slug' ),
@@ -176,12 +178,6 @@ class Rest_Controller extends \WP_REST_Posts_Controller {
 						'validate_callback' => '__return_true', // TODO actually validate/sanitize version.
 					),
 					'required'    => true,
-				),
-				'id'               => array(
-					'description' => __( 'Unique identifier for the package.', 'wp-stockroom' ),
-					'type'        => 'integer',
-					'context'     => array( 'view', 'edit', 'embed' ),
-					'readonly'    => true,
 				),
 				'modified'         => array(
 					'description' => __( "The date the Package was last modified, in the site's timezone.", 'wp-stockroom' ),
@@ -216,6 +212,7 @@ class Rest_Controller extends \WP_REST_Posts_Controller {
 							return rest_validate_value_from_schema( $status, $request->get_attributes()['args'][ $param ], $param );
 						},
 					),
+					'required'    => true,
 				),
 				'title'            => array(
 					'description' => __( 'The title of the Package.', 'wp-stockroom' ),

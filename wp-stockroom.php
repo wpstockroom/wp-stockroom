@@ -67,6 +67,7 @@ add_shortcode( Shortcode::TAG, array( Shortcode::instance(), 'render' ) );
 
 // Post type.
 add_action( 'init', array( Post_Type::instance(), 'register' ) );
+add_filter( 'rest_endpoints', array( \WP_Stockroom\App\Package\Post_Type::instance(), 'remove_routes' ) );
 add_filter( 'manage_package_posts_columns', array( Post_Type::instance(), 'admin_list_columns' ) );
 add_action( 'manage_package_posts_custom_column', array( Post_Type::instance(), 'admin_list_columns_content' ), 10, 2 );
 
