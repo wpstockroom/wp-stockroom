@@ -1,39 +1,16 @@
 <?php
 
-namespace WP_Stockroom\App\Rest;
+namespace WP_Stockroom\App\Package;
 
-use WP_Stockroom\App\Package_Post_Type;
 use WP_Stockroom\App\Uploader;
 
 /**
  * Class Rest_Controller
  * Handles the rest API parts.
  *
- * @package WP_Stockroom\app
+ * @package \WP_Stockroom\App\Package
  */
-class Controller extends \WP_REST_Posts_Controller {
-
-	/**
-	 * Setup this controller.
-	 *
-	 * @return void
-	 */
-	public static function rest_api_init() {
-		$controller = new self( 'package' );
-		$controller->register_routes();
-	}
-
-	/**
-	 * Constructs the controller.
-	 *
-	 * @param string $post_type the current post_type.
-	 */
-	public function __construct( $post_type ) {
-		$this->post_type = $post_type;
-
-		$this->namespace = WP_STOCKROOM_SLUG . '/v1';
-		$this->rest_base = 'package';
-	}
+class Rest_Controller extends \WP_REST_Posts_Controller {
 
 	/**
 	 * Registers the REST API routes.
@@ -78,7 +55,7 @@ class Controller extends \WP_REST_Posts_Controller {
 				array( 'status' => 400 )
 			);
 		}
-		$existing_post = Package_Post_Type::instance()->get_package_by_slug( $request['slug'] );
+		$existing_post = Post_Type::instance()->get_package_by_slug( $request['slug'] );
 		if ( ! empty( $existing_post ) ) {
 			return new \WP_Error(
 				'rest_package_exists',
@@ -232,7 +209,7 @@ class Controller extends \WP_REST_Posts_Controller {
 				'package_type'     => array(
 					'description' => __( 'A named status for the Package.', 'wp-stockroom' ),
 					'type'        => 'string',
-					'enum'        => Package_Post_Type::instance()->get_types(),
+					'enum'        => Post_Type::instance()->get_types(),
 					'context'     => array( 'view', 'edit' ),
 					'arg_options' => array(
 						'validate_callback' => function ( $status, $request, $param ) {

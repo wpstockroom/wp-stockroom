@@ -1,13 +1,15 @@
 <?php
 
-namespace WP_Stockroom\App;
+namespace WP_Stockroom\App\Package;
+
+use WP_Stockroom\App\Singleton;
 
 /**
  * Class Post_Type
  *
- * @package WP_Stockroom\app
+ * @package WP_Stockroom\App\Package
  */
-class Package_Post_Type {
+class Post_Type {
 	use Singleton;
 
 
@@ -86,22 +88,24 @@ class Package_Post_Type {
 			'menu_name'          => _x( 'Packages', 'menu items', 'wp-stockroom' ),
 		);
 		$args   = array(
-			'labels'             => $labels,
-			'description'        => __( 'The Stockroom Packages', 'wp-stockroom' ),
-			'public'             => false, // can the posttype be seen on front and backend?
-			'publicly_queryable' => false, // can be called via url params.
-			'show_in_rest'       => false,
-			'show_ui'            => true, // show a default WP-admin UI.
-			'show_in_menu'       => true,
-			'show_in_admin_bar'  => false, // show in admin bar.
-			'query_var'          => false, // true or string to replace the value in url's.
-			'has_archive'        => false,
-			'hierarchical'       => false,
-			'can_export'         => false,
-			'taxonomies'         => array(),
-			'supports'           => array( 'title' ),
-			'menu_icon'          => 'dashicons-editor-customchar',
-			'menu_position'      => 59,
+			'labels'                => $labels,
+			'description'           => __( 'The Stockroom Packages', 'wp-stockroom' ),
+			'public'                => false, // can the posttype be seen on front and backend?
+			'publicly_queryable'    => false, // can be called via url params.
+			'show_in_rest'          => true,
+			'rest_namespace'        => WP_STOCKROOM_SLUG . '/v1',
+			'rest_controller_class' => '\WP_Stockroom\App\Package\Rest_Controller',
+			'show_ui'               => true, // show a default WP-admin UI.
+			'show_in_menu'          => true,
+			'show_in_admin_bar'     => false, // show in admin bar.
+			'query_var'             => false, // true or string to replace the value in url's.
+			'has_archive'           => false,
+			'hierarchical'          => false,
+			'can_export'            => false,
+			'taxonomies'            => array(),
+			'supports'              => array( 'title' ),
+			'menu_icon'             => 'dashicons-editor-customchar',
+			'menu_position'         => 59,
 		);
 		register_post_type( 'package', $args );
 	}
@@ -123,7 +127,7 @@ class Package_Post_Type {
 	/**
 	 * Display the custom column content.
 	 *
-	 * @param string $column The current colum.
+	 * @param string $column  The current colum.
 	 * @param int    $post_id The current post_id.
 	 *
 	 * @return void
