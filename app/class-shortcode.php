@@ -2,6 +2,8 @@
 
 namespace WP_Stockroom\App;
 
+use WP_Stockroom\App\Package\Post_Type;
+
 /**
  * Class Shortcode
  *
@@ -23,12 +25,19 @@ class Shortcode {
 		$default_package = get_post();
 		$default_package = ( $default_package ) ? $default_package->post_name : null;
 
-		$atts    = shortcode_atts(
+		$atts = shortcode_atts(
 			array( 'package' => $default_package ),
 			$atts,
 			self::TAG
 		);
-		$package = $atts['package'];
+		if ( empty( $atts['package'] ) ) {
+			return __( 'Please provide a package in shortcode.', 'wp-stockroom' );
+		}
+		$package = Post_Type::instance()->get_package_by_slug( $atts['package'] );
+		if ( null === $package ) {
+			// translators: The not found package slug.
+			return sprintf( __( 'Cannot find package with %1$s', 'wp-stockroom' ), $atts['package'] );
+		}
 
 		ob_start();
 		require WP_STOCKROOM_DIR . 'templates' . DIRECTORY_SEPARATOR . 'shortcode-render.php';

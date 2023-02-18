@@ -44,7 +44,7 @@ class Files {
 	 *
 	 * @return string|\WP_Error
 	 */
-	public function get_readme_txt( $package_post ) {
+	public function get_readme_txt( \WP_Post $package_post ) {
 		$post = $this->get_readme_post( $package_post );
 		if ( is_wp_error( $post ) ) {
 			return $post;
@@ -71,7 +71,7 @@ class Files {
 	 *
 	 * @return string|\WP_Error Version string on success.
 	 */
-	public function get_stable_tag( $package_post ) {
+	public function get_stable_tag( \WP_Post $package_post ) {
 		$text = $this->get_readme_txt( $package_post );
 		if ( is_wp_error( $text ) ) {
 			return $text;
@@ -98,7 +98,7 @@ class Files {
 	 *
 	 * @return string|\WP_Error HTML on success.
 	 */
-	public function get_readme_html( $package_post ) {
+	public function get_readme_html( \WP_Post $package_post ) {
 		$text = $this->get_readme_txt( $package_post );
 		if ( is_wp_error( $text ) ) {
 			return $text;
@@ -130,7 +130,7 @@ class Files {
 	 *
 	 * @return \WP_Post[]|null
 	 */
-	public function get_zip_posts( $package_post ) {
+	public function get_zip_posts( \WP_Post $package_post ) {
 		$q_args   = array(
 			'post_type'      => array( 'attachment' ),
 			'post_status'    => array( 'private' ),
@@ -156,11 +156,11 @@ class Files {
 	 *
 	 * @return \WP_Error|\WP_Post
 	 */
-	public function get_zip_by_version( $package_post, $version = null ) {
+	public function get_zip_by_version( \WP_Post $package_post, $version = null ) {
 		if ( null === $version ) {
 			$version = get_post_meta( $package_post->ID, '_version', true );
 		}
-		$q_args   = array(
+		$q_args = array(
 			'post_type'      => array( 'attachment' ),
 			'post_status'    => array( 'private' ),
 			'post_mime_type' => 'application/zip',
@@ -185,5 +185,27 @@ class Files {
 		}
 
 		return $zipfiles[0];
+	}
+
+	/**
+	 * Get the readme link.
+	 *
+	 * @param \WP_Post $package_post The package post.
+	 *
+	 * @return string
+	 */
+	public function get_readme_link( \WP_Post $package_post ) {
+		return get_home_url( null, "wp-stockroom/{$package_post->post_name}/readme.txt" );
+	}
+
+	/**
+	 * Get the readme link.
+	 *
+	 * @param \WP_Post $package_post The package post.
+	 *
+	 * @return string
+	 */
+	public function get_latest_zip_link( \WP_Post $package_post ) {
+		return get_home_url( null, "wp-stockroom/{$package_post->post_name}/latest.zip" );
 	}
 }

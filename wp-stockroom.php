@@ -17,6 +17,7 @@
 namespace WP_Stockroom;
 
 use WP_Stockroom\App\Package\Post_Type;
+use WP_Stockroom\App\Package\Redirect;
 use WP_Stockroom\App\Shortcode;
 
 define( 'WP_STOCKROOM_VERSION', '0.9.0' );
@@ -70,5 +71,8 @@ add_action( 'init', array( Post_Type::instance(), 'register' ) );
 add_filter( 'rest_endpoints', array( \WP_Stockroom\App\Package\Post_Type::instance(), 'remove_routes' ) );
 add_filter( 'manage_package_posts_columns', array( Post_Type::instance(), 'admin_list_columns' ) );
 add_action( 'manage_package_posts_custom_column', array( Post_Type::instance(), 'admin_list_columns_content' ), 10, 2 );
-
+// Redirects.
+add_action( 'init', array( Redirect::instance(), 'add_rewrite_rule' ) );
+add_filter( 'query_vars', array( Redirect::instance(), 'register_query_vars' ) );
+add_action( 'template_redirect', array( Redirect::instance(), 'serve_package_files' ) );
 

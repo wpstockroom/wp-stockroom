@@ -4,7 +4,7 @@
  *
  * @package WP_Stockroom\templates
  *
- * @var string $package the slug of the current package.
+ * @var \WP_Post $package the slug of the current package.
  */
 
 use WP_Stockroom\App\Files;

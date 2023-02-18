@@ -111,7 +111,6 @@ class Uploader {
 	 * @return int|\WP_Error
 	 */
 	public function upload_zip_file( array $_file ) {
-
 		$package_type = get_post_meta( $this->package_post->ID, '_package_type', true );
 		$version      = get_post_meta( $this->package_post->ID, '_version', true );
 

@@ -2,6 +2,7 @@
 
 namespace WP_Stockroom\App\Package;
 
+use WP_Stockroom\App\Files;
 use WP_Stockroom\App\Uploader;
 
 /**
@@ -113,7 +114,6 @@ class Rest_Controller extends \WP_REST_Posts_Controller {
 		$response = rest_ensure_response( $response );
 
 		$response->set_status( 201 );
-		// Todo change package url.
 		$response->header( 'Location', rest_url( rest_get_route_for_post( $post ) ) );
 
 		return $response;
@@ -134,8 +134,8 @@ class Rest_Controller extends \WP_REST_Posts_Controller {
 		$item->data['title']            = $post->post_title;
 		$item->data['version']          = get_post_meta( $post->ID, '_version', true );
 		$item->data['package_type']     = get_post_meta( $post->ID, '_package_type', true );
-		$item->data['readme_file']      = '//TODO';
-		$item->data['package_zip_file'] = '//TODO';
+		$item->data['readme_file']      = Files::instance()->get_readme_link( $post );
+		$item->data['package_zip_file'] = Files::instance()->get_latest_zip_link( $post );
 
 		return $item;
 	}
