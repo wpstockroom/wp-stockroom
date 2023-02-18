@@ -3,6 +3,7 @@
 namespace WP_Stockroom\App\Rest;
 
 use WP_Stockroom\App\Package_Post_Type;
+use WP_Stockroom\App\Uploader;
 
 /**
  * Class Rest_Controller
@@ -112,15 +113,28 @@ class Controller extends \WP_REST_Posts_Controller {
 		/**
 		 * Upload files if available.
 		 */
+		$files    = $request->get_file_params();
+		$uploader = new Uploader( $post );
+		if ( ! empty( $files['readme_file'] ) ) {
+			$readme_attachment_id = $uploader->upload_readme( $files['readme_file'] );
+			if ( is_wp_error( $readme_attachment_id ) ) {
+				$readme_attachment_id->add_data( array( 'status' => 500 ) );
 
-		$files = $this->upload_files( $request, $post );
-		if ( is_wp_error( $files ) ) {
-			$error = new \WP_Error( 'rest_stockroom_file_error', __( 'An error occured while uploading files. The package page was created.', 'wp-stockroom' ), $files->get_error_data() );
-			$error->merge_from( $files );
+				return $readme_attachment_id;
+			}
+		}
+		if ( ! empty( $files['readme_file'] ) ) {
+			$readme_attachment_id = $uploader->upload_zip_file( $files['package_zip_file'] );
+			if ( is_wp_error( $readme_attachment_id ) ) {
+				$readme_attachment_id->add_data( array( 'status' => 500 ) );
 
-			return $error;
+				return $readme_attachment_id;
+			}
 		}
 
+		/**
+		 * All Done
+		 */
 		$response = $this->prepare_item_for_response( $post, $request );
 		/** @var \WP_REST_Response $response */
 		$response = rest_ensure_response( $response );
@@ -151,101 +165,6 @@ class Controller extends \WP_REST_Posts_Controller {
 		$item->data['package_zip_file'] = '//TODO';
 
 		return $item;
-	}
-
-	/**
-	 * @param \WP_REST_Request $request     The current request.
-	 * @param \WP_Post         $parent_post The package post to attach the item to.
-	 *
-	 * @return \WP_Error|array Array with post id's for the zip and readme.
-	 */
-	protected function upload_files( $request, $parent_post ) {
-		$files = $request->get_file_params();
-
-		/**
-		 * Handle the readme file.
-		 */
-		if ( ! empty( $files['readme_file'] ) ) {
-			// TODO delete existing readme file.
-			$readme = $this->upload_file( $files['readme_file'] );
-			if ( is_wp_error( $readme ) ) {
-				$readme->add_data( array( 'status' => 500 ) );
-
-				return $readme;
-			}
-
-			$post_data      = array(
-				'post_title'     => "readme.txt for {$parent_post->post_title}",
-				'post_mime_type' => $readme['type'],
-				'guid'           => $readme['url'],
-			);
-			$readme_file_id = wp_insert_attachment( wp_slash( $post_data ), $readme['file'], $parent_post->ID, true );
-			if ( is_wp_error( $readme_file_id ) ) {
-				$readme_file_id->add_data( array( 'status' => 500 ) );
-
-				return $readme_file_id;
-			}
-		}
-
-		/**
-		 * Handle the package zip file.
-		 */
-		if ( ! empty( $files['package_zip_file'] ) ) {
-			$zip_file = $this->upload_file( $files['package_zip_file'] );
-			if ( is_wp_error( $zip_file ) ) {
-				return $zip_file;
-			}
-
-			$post_data   = array(
-				'post_title'     => "{$request['package_type']} {$request['version']} for {$parent_post->post_title}",
-				'post_mime_type' => $zip_file['type'],
-				'guid'           => $zip_file['url'],
-			);
-			$zip_file_id = wp_insert_attachment( wp_slash( $post_data ), $zip_file['file'], $parent_post->ID, true );
-			if ( is_wp_error( $zip_file_id ) ) {
-				$zip_file_id->add_data( array( 'status' => 500 ) );
-
-				return $zip_file_id;
-			}
-		}
-
-		return array(
-			'readme_file'  => $readme_file_id, // @phpstan-ignore-line
-			'package_file' => $zip_file_id, // @phpstan-ignore-line
-		);
-	}
-
-	/**
-	 * @param array $file A single file from $_FILES.
-	 *
-	 * @return array|\WP_Error Data from wp_handle_upload().
-	 * @see \WP_REST_Attachments_Controller::upload_from_file for original.
-	 */
-	protected function upload_file( $file ) {
-		// Pass off to WP to handle the actual upload.
-		$overrides = array(
-			'test_form' => false,
-		);
-
-		// Bypasses is_uploaded_file() when running unit tests.
-		if ( defined( 'DIR_TESTDATA' ) && DIR_TESTDATA ) {
-			$overrides['action'] = 'wp_handle_mock_upload';
-		}
-
-		// Include filesystem functions to get access to wp_handle_upload().
-		require_once ABSPATH . 'wp-admin/includes/file.php';
-
-		$file = wp_handle_upload( $file, $overrides );
-
-		if ( isset( $file['error'] ) ) {
-			return new \WP_Error(
-				'rest_upload_unknown_error',
-				$file['error'],
-				array( 'status' => 500 )
-			);
-		}
-
-		return $file;
 	}
 
 	/**
