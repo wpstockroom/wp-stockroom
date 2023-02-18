@@ -79,7 +79,13 @@ class Uploader {
 	 * @return int|\WP_Error
 	 */
 	public function upload_readme( array $_file ) {
-		// Todo delete existing readme.
+
+		// Delete the existing readme file.
+		$readme_post = Files::instance()->get_readme_post( $this->package_post );
+		if ( ! is_wp_error( $readme_post ) ) {
+			wp_delete_attachment( $readme_post->ID, true );
+		}
+
 		add_filter( 'upload_dir', array( $this, 'set_readme_dir' ) );
 		$wp_file = $this->upload_file( $_file );
 		remove_filter( 'upload_dir', array( $this, 'set_readme_dir' ) );
@@ -105,6 +111,16 @@ class Uploader {
 	 * @return int|\WP_Error
 	 */
 	public function upload_zip_file( array $_file ) {
+
+		$package_type = get_post_meta( $this->package_post->ID, '_package_type', true );
+		$version      = get_post_meta( $this->package_post->ID, '_version', true );
+
+		// If a zip With the same version exists, delete that.
+		$zip_same_version = Files::instance()->get_zip_by_version( $this->package_post, $version );
+		if ( ! is_wp_error( $zip_same_version ) ) {
+			wp_delete_attachment( $zip_same_version->ID, true );
+		}
+
 		add_filter( 'upload_dir', array( $this, 'set_zip_dir' ) );
 		$wp_file = $this->upload_file( $_file );
 		remove_filter( 'upload_dir', array( $this, 'set_zip_dir' ) );
@@ -112,14 +128,14 @@ class Uploader {
 			return $wp_file;
 		}
 
-		$package_type = get_post_meta( $this->package_post->ID, '_package_type', true );
-		$version      = get_post_meta( $this->package_post->ID, '_version', true );
-
 		$post_data = array(
 			'post_title'     => "{$this->package_post->post_title} {$package_type} {$version}",
 			'post_mime_type' => $wp_file['type'],
 			'guid'           => $wp_file['url'],
 			'post_status'    => 'private', // Make sure the files are always hidden.
+			'meta_input'     => array(
+				'_version' => $version,
+			),
 		);
 
 		return wp_insert_attachment( wp_slash( $post_data ), $wp_file['file'], $this->package_post->ID, true );

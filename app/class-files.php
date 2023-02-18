@@ -15,22 +15,16 @@ class Files {
 	/**
 	 * Get the (most recent) readme file post.
 	 *
-	 * @param string $package_slug The slug of the package.
+	 * @param \WP_Post $package_post The post of the package.
 	 *
 	 * @return \WP_Post|\WP_Error
 	 */
-	public function get_readme_post( $package_slug ) {
+	public function get_readme_post( \WP_Post $package_post ) {
 		$q_args = array(
 			'post_type'      => array( 'attachment' ),
-			'post_status'    => array( 'inherit' ),
+			'post_status'    => array( 'private' ),
 			'post_mime_type' => 'text/plain',
-			//phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
-			'meta_query'     => array(
-				'package_slug' => array(
-					'key'   => 'package_slug',
-					'value' => $package_slug,
-				),
-			),
+			'post_parent'    => $package_post->ID,
 			'orderby'        => 'date',
 			'order'          => 'DESC',
 			'posts_per_page' => 1,
@@ -46,12 +40,12 @@ class Files {
 	/**
 	 * Get the text form the readme file.
 	 *
-	 * @param string $package_slug The slug of the package.
+	 * @param \WP_Post $package_post The post of the package.
 	 *
 	 * @return string|\WP_Error
 	 */
-	public function get_readme_txt( $package_slug ) {
-		$post = $this->get_readme_post( $package_slug );
+	public function get_readme_txt( $package_post ) {
+		$post = $this->get_readme_post( $package_post );
 		if ( is_wp_error( $post ) ) {
 			return $post;
 		}
@@ -71,14 +65,14 @@ class Files {
 	}
 
 	/**
-	 * Get the stable tag of the plugin.
+	 * Get the stable tag of the plugin/theme.
 	 *
-	 * @param string $package_slug The slug of the package.
+	 * @param \WP_Post $package_post The post of the package.
 	 *
 	 * @return string|\WP_Error Version string on success.
 	 */
-	public function get_stable_tag( $package_slug ) {
-		$text = $this->get_readme_txt( $package_slug );
+	public function get_stable_tag( $package_post ) {
+		$text = $this->get_readme_txt( $package_post );
 		if ( is_wp_error( $text ) ) {
 			return $text;
 		}
@@ -100,12 +94,12 @@ class Files {
 	/**
 	 * Parse the readme as html.
 	 *
-	 * @param string $package_slug The slug of the package.
+	 * @param \WP_Post $package_post The post of the package.
 	 *
 	 * @return string|\WP_Error HTML on success.
 	 */
-	public function get_readme_html( $package_slug ) {
-		$text = $this->get_readme_txt( $package_slug );
+	public function get_readme_html( $package_post ) {
+		$text = $this->get_readme_txt( $package_post );
 		if ( is_wp_error( $text ) ) {
 			return $text;
 		}
@@ -132,22 +126,16 @@ class Files {
 	/**
 	 * Get all zip files.
 	 *
-	 * @param string $package_slug The slug of the package.
+	 * @param \WP_Post $package_post The post of the package.
 	 *
 	 * @return \WP_Post[]|null
 	 */
-	public function get_zip_posts( $package_slug ) {
-		$q_args = array(
+	public function get_zip_posts( $package_post ) {
+		$q_args   = array(
 			'post_type'      => array( 'attachment' ),
-			'post_status'    => array( 'inherit' ),
+			'post_status'    => array( 'private' ),
 			'post_mime_type' => 'application/zip',
-			//phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
-			'meta_query'     => array(
-				'package_slug' => array(
-					'key'   => 'package_slug',
-					'value' => $package_slug,
-				),
-			),
+			'post_parent'    => $package_post->ID,
 			'orderby'        => 'date',
 			'order'          => 'DESC',
 			'nopaging'       => true,
@@ -163,31 +151,24 @@ class Files {
 	/**
 	 * Get the zip post for the given version.
 	 *
-	 * @param string $package_slug The slug of the package.
-	 * @param string $version      Defaults to stable tag.
+	 * @param \WP_Post $package_post The post of the package.
+	 * @param string   $version      Defaults to latest.
 	 *
 	 * @return \WP_Error|\WP_Post
 	 */
-	public function get_zip_by_version( $package_slug, $version = null ) {
+	public function get_zip_by_version( $package_post, $version = null ) {
 		if ( null === $version ) {
-			$version = $this->get_stable_tag( $package_slug );
-			if ( is_wp_error( $version ) ) {
-				return $version;
-			}
+			$version = get_post_meta( $package_post->ID, '_version', true );
 		}
-
-		$q_args = array(
+		$q_args   = array(
 			'post_type'      => array( 'attachment' ),
-			'post_status'    => array( 'inherit' ),
+			'post_status'    => array( 'private' ),
 			'post_mime_type' => 'application/zip',
+			'post_parent'    => $package_post->ID,
 			//phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 			'meta_query'     => array(
-				'package_slug' => array(
-					'key'   => 'package_slug',
-					'value' => $package_slug,
-				),
-				'version'      => array(
-					'key'   => 'version_number',
+				'version' => array(
+					'key'   => '_version',
 					'value' => $version,
 				),
 			),
