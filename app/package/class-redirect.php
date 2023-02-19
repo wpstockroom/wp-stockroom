@@ -65,8 +65,7 @@ class Redirect {
 		$version   = str_replace( '.zip', '', get_query_var( 'package_file_name' ) );
 		$file_name = "{$package->post_name}.{$version}.zip";
 		if ( 'latest' === $version ) {
-			$version   = get_post_meta( $package->ID, '_version', true );
-			$file_name = "{$package->post_name}.{$version}.zip";
+			$version = Post_Type::instance()->get_latest_version( $package, true );
 		}
 		$zip_file = Files::instance()->get_zip_by_version( $package, $version );
 		$this->render_file( $zip_file );

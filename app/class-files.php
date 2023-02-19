@@ -3,6 +3,7 @@
 namespace WP_Stockroom\App;
 
 use League\CommonMark\CommonMarkConverter;
+use WP_Stockroom\App\Package\Post_Type;
 
 /**
  * Class Files
@@ -158,7 +159,7 @@ class Files {
 	 */
 	public function get_zip_by_version( \WP_Post $package_post, $version = null ) {
 		if ( null === $version ) {
-			$version = get_post_meta( $package_post->ID, '_version', true );
+			$version = Post_Type::instance()->get_latest_version( $package_post, true );
 		}
 		$q_args = array(
 			'post_type'      => array( 'attachment' ),
@@ -201,11 +202,15 @@ class Files {
 	/**
 	 * Get the readme link.
 	 *
-	 * @param \WP_Post $package_post The package post.
+	 * @param \WP_Post    $package_post The package post.
+	 * @param string|null $version Leave empty for the link to the latest/stable version.
 	 *
 	 * @return string
 	 */
-	public function get_latest_zip_link( \WP_Post $package_post ) {
-		return get_home_url( null, "wp-stockroom/{$package_post->post_name}/latest.zip" );
+	public function get_zip_link( \WP_Post $package_post, string $version = null ) {
+		if ( empty( $version ) ) {
+			return get_home_url( null, "wp-stockroom/{$package_post->post_name}/latest.zip" );
+		}
+		return get_home_url( null, "wp-stockroom/{$package_post->post_name}/{$version}.zip" );
 	}
 }

@@ -128,14 +128,15 @@ class Rest_Controller extends \WP_REST_Posts_Controller {
 	 * @return \WP_REST_Response Response object.
 	 */
 	public function prepare_item_for_response( $item, $request ) {
-		$post = $item;
-		$item = parent::prepare_item_for_response( $item, $request );
+		$post    = $item;
+		$item    = parent::prepare_item_for_response( $item, $request );
+		$version = Post_Type::instance()->get_latest_version( $post );
 
 		$item->data['title']            = $post->post_title;
-		$item->data['version']          = get_post_meta( $post->ID, '_version', true );
+		$item->data['version']          = $version;
 		$item->data['package_type']     = get_post_meta( $post->ID, '_package_type', true );
 		$item->data['readme_file']      = Files::instance()->get_readme_link( $post );
-		$item->data['package_zip_file'] = Files::instance()->get_latest_zip_link( $post );
+		$item->data['package_zip_file'] = Files::instance()->get_zip_link( $post, $version );
 
 		return $item;
 	}

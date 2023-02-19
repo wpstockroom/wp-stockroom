@@ -2,6 +2,8 @@
 
 namespace WP_Stockroom\App;
 
+use WP_Stockroom\App\Package\Post_Type;
+
 /**
  * Class Uploader
  *
@@ -112,7 +114,7 @@ class Uploader {
 	 */
 	public function upload_zip_file( array $_file ) {
 		$package_type = get_post_meta( $this->package_post->ID, '_package_type', true );
-		$version      = get_post_meta( $this->package_post->ID, '_version', true );
+		$version      = Post_Type::instance()->get_latest_version( $this->package_post );
 
 		// If a zip With the same version exists, delete that.
 		$zip_same_version = Files::instance()->get_zip_by_version( $this->package_post, $version );

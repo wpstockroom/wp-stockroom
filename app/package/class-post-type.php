@@ -2,6 +2,7 @@
 
 namespace WP_Stockroom\App\Package;
 
+use WP_Stockroom\App\Files;
 use WP_Stockroom\App\Singleton;
 
 /**
@@ -111,6 +112,57 @@ class Post_Type {
 	}
 
 	/**
+	 * Check if the given post is a plugin.
+	 *
+	 * @param int|\WP_Post|null $post Optional. Post ID or post object.
+	 *
+	 * @return bool True on plugin
+	 */
+	public function is_plugin( $post = null ) {
+		$post = get_post( $post );
+		if ( empty( $post ) ) {
+			return false;
+		}
+
+		return ( get_post_meta( $post->ID, '_package_type', true ) === 'plugin' );
+	}
+
+	/**
+	 * Check if the given post is a theme.
+	 *
+	 * @param int|\WP_Post|null $post Optional. Post ID or post object.
+	 *
+	 * @return bool True on theme
+	 */
+	public function is_theme( $post = null ) {
+		$post = get_post( $post );
+		if ( empty( $post ) ) {
+			return false;
+		}
+
+		return ( get_post_meta( $post->ID, '_package_type', true ) === 'theme' );
+	}
+
+	/**
+	 * Get the latest version of the package.
+	 *
+	 * @param int|\WP_Post|null $post Optional. Post ID or post object.
+	 * @param bool              $stable Check for the stable tag instead of latest.
+	 *
+	 * @return false|mixed|string|\WP_Error|\WP_Post
+	 */
+	public function get_latest_version( $post = null, bool $stable = false ) {
+		$post = get_post( $post );
+		if ( empty( $post ) ) {
+			return false;
+		}
+		if ( false === $stable ) {
+			return get_post_meta( $post->ID, '_version', true );
+		}
+		return Files::instance()->get_stable_tag( $post );
+	}
+
+	/**
 	 * Remove the api routes we don't want.
 	 *
 	 * @param array $endpoints Currently registerd route.
@@ -140,8 +192,8 @@ class Post_Type {
 	 * @return array
 	 */
 	public function admin_list_columns( $columns ) {
-		$columns['version'] = __( 'Version', 'wp-stockroom' );
 		$columns['type']    = _x( 'Type', 'The Type of package', 'wp-stockroom' );
+		$columns['version'] = __( 'Version', 'wp-stockroom' );
 
 		return $columns;
 	}
@@ -155,13 +207,36 @@ class Post_Type {
 	 * @return void
 	 */
 	public function admin_list_columns_content( $column, $post_id ) {
+		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped
 		switch ( $column ) {
-			case 'version':
-				echo esc_html( get_post_meta( $post_id, '_version', true ) );
-				break;
 			case 'type':
-				echo esc_html( get_post_meta( $post_id, '_package_type', true ) );
+				if ( $this->is_plugin( $post_id ) ) {
+					echo '<span class="dashicons dashicons-admin-plugins"></span>' . __( 'Plugin' ); //phpcs:ignore WordPress.WP.I18n.MissingArgDomain
+				} else {
+					echo '<span class="dashicons dashicons-admin-appearance"></span>' . __( 'Theme' ); //phpcs:ignore WordPress.WP.I18n.MissingArgDomain
+				}
+				break;
+			case 'version':
+				/** @var \WP_Post $post */
+				$post    = get_post( $post_id );
+				$version = $this->get_latest_version( $post );
+
+				if ( $this->is_plugin( $post_id ) ) {
+					$stable = $this->get_latest_version( $post, true );
+					if ( ! is_wp_error( $stable ) ) {
+						$zip_link = esc_attr( Files::instance()->get_zip_link( $post, $stable ) );
+						// translators: The version number.
+						echo sprintf( __( 'Stable version %1$s', 'wp-stockroom' ), "<a href='{$zip_link}'>{$stable}</a>" ) . "<br/>\n";
+					}
+					$zip_link = esc_attr( Files::instance()->get_zip_link( $post, $version ) );
+					// translators: The version number.
+					echo sprintf( __( 'Latest version %1$s', 'wp-stockroom' ), "<a href='{$zip_link}'>{$version}</a>" );
+				} else {
+					echo "<strong>{$version}</strong>";
+				}
+
 				break;
 		}
+		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 }
